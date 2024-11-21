@@ -1,18 +1,16 @@
 package com.javabuilders.demowebscraping.service;
 
+import com.javabuilders.demowebscraping.exception.InvalidParametersException;
+import com.javabuilders.demowebscraping.exception.ScrapingExecutionException;
 import com.javabuilders.demowebscraping.model.Product;
 import com.javabuilders.demowebscraping.model.ScrapingParameters;
 import com.javabuilders.demowebscraping.model.ScrapingResult;
-import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 /**
@@ -21,23 +19,12 @@ import java.util.List;
  * Esta clase implementa la interfaz {@link IScrapingService}.
  */
 @Service
-public class ScrapingService implements IScrapingService{
+@RequiredArgsConstructor
+public class ScrapingService implements IScrapingService {
 
-    private final ProductExtractor productExtractor;
-    private static final Logger logger= LoggerFactory.getLogger(ScrapingService.class);
-
-    @Getter
-    private static List<Product> latestProducts;
-
-    /**
-     * Constructor para la inyección de dependencias de {@link ProductExtractor}.
-     *
-     * @param productExtractor El extractor que se utiliza para obtener los productos de la página web.
-     */
-    @Autowired
-    public ScrapingService(ProductExtractor productExtractor) {
-        this.productExtractor = productExtractor;
-    }
+    private final IBrowserDriver browserDriver;
+    private final ScrapingResultManager resultManager;
+    private static final Logger logger = LoggerFactory.getLogger(ScrapingService.class);
 
     /**
      * Realiza el proceso de scraping de productos de acuerdo con los parámetros proporcionados.
@@ -47,33 +34,35 @@ public class ScrapingService implements IScrapingService{
      * @return Un objeto {@link ScrapingResult} que contiene la lista de productos obtenidos,
      * o null en caso de error en la ejecución.
      */
-    public ScrapingResult performScraping(ScrapingParameters scrapingParameters) {
-        WebDriver driver = initializeWebDriver();
+    public ScrapingResult getFinalList(ScrapingParameters scrapingParameters) {
+
+
+        validateUrl(scrapingParameters);
+        WebDriver driver = browserDriver.connectDriverToUrl(scrapingParameters);
 
         try {
-            driver.get(scrapingParameters.getUrl());
-            List<Product> products = productExtractor.productList(driver);
-            latestProducts = products; //Actualizar el resultado en cada ejecución
+            IProductExtractor productExtractor = ExtractorFactory.getProductExtractor(scrapingParameters);
+            List<Product> products = productExtractor.extractProductList(driver);
             logger.info("Productos obtenidos: {}", products.size());  // Log de depuración para ver la cantidad de productos
-            return new ScrapingResult(products);
+            ScrapingResult latestProducts = new ScrapingResult(products);
+            resultManager.updateLatestResult(latestProducts);
+            return latestProducts;
         } catch (WebDriverException e) {
             logger.error("Error en la conexión con el navegador: {}", e.getMessage());
-            return null;
+            throw new ScrapingExecutionException("Error en la ejecución del scraping.", e);
         } finally {
             driver.quit();
         }
     }
 
     /**
-     * Inicializa y configura el WebDriver de Selenium para la extracción de datos.
+     * Valida que la URL no esté vacía.
      *
-     * @return Un objeto {@link WebDriver} configurado para navegar en la web.
+     * @param parameters Los parámetros de scraping que contienen la URL.
      */
-    private WebDriver initializeWebDriver() {
-        // Configura las opciones de Chrome (configurarlo según el entorno)
-            ChromeOptions options = new ChromeOptions();
-            return new ChromeDriver(options);
+    public void validateUrl(ScrapingParameters parameters) {
+        if(parameters.getUrl().isEmpty()) {
+            throw new InvalidParametersException("La URL no puede ser nula o vacía.");
+        }
     }
 }
-
-
