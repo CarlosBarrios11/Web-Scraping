@@ -11,11 +11,6 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class ScrapingParameters {
-
     private String url; // URL del sitio web a scrapear
     private String interval;
-
-
-    public ScrapingParameters() {
-    }
 }
