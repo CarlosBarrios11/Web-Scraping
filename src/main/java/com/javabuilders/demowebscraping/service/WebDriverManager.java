@@ -30,14 +30,24 @@ public class WebDriverManager implements IBrowserDriver{
         // 2. Deshabilitar las notificaciones emergentes (puede ser útil para scraping)
         options.addArguments("--disable-notifications");
 
-        /* 3. Deshabilitar la GPU (útil para entornos donde no hay hardware gráfico)
-        options.addArguments("--disable-gpu"); */
-
-        // 4. Ignorar los errores de certificado (útil si trabajas con sitios no seguros)
+        // 3. Ignorar los errores de certificado (útil si trabajas con sitios no seguros)
         options.addArguments("--ignore-certificate-errors");
 
-        // 5. Configurar el tamaño de la ventana del navegador (sin que se muestre de forma gráfica)
+        // 4. Configurar el tamaño de la ventana del navegador (sin que se muestre de forma gráfica)
         options.addArguments("--window-size=1920x1080");
+
+        // 5.  Desactiva el renderizado de imágenes (ideal para scraping puro de datos)
+        options.addArguments("--blink-settings=imagesEnabled=false");
+
+        // 6. Desactiva las extensiones del navegador (acelera el tiempo de inicialización)
+        options.addArguments("--disable-extensions");
+
+        // 7. Usa menos recursos del sistema (útil en entornos con recursos limitados)
+        options.addArguments("--disable-dev-shm-usage");
+
+        // 8. Mejora la seguridad en entornos de servidor
+        options.addArguments("--no-sandbox");
+
 
         options.addArguments("--incognito");
         return new ChromeDriver(options);

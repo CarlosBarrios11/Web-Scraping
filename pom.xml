@@ -40,11 +40,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
@@ -55,13 +50,11 @@
             <version>5.4</version>
         </dependency>
 
-
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>4.19.1</version>
+            <version>4.26.0</version>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -72,5 +65,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

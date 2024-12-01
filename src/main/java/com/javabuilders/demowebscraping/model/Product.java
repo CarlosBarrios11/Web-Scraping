@@ -15,7 +15,7 @@ import java.util.Date;
 public class Product {
 
     private String name;
-    private double price;
+    private String price;
     private String link;
     private Date timeStamp;
 }
