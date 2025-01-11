@@ -1,11 +1,9 @@
 package com.javabuilders.demowebscraping.service;
-
+import com.javabuilders.demowebscraping.model.ScrapingParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ScheduledFuture;
@@ -20,24 +18,36 @@ public class TaskSchedulerService {
 
     private final static Logger log = LoggerFactory.getLogger(TaskSchedulerService.class);
     private final TaskScheduler taskScheduler;
+    private final ScrapingService scrapingService;
     private ScheduledFuture<?> scheduledTask;
 
-    public TaskSchedulerService() {
-        this.taskScheduler = new ThreadPoolTaskScheduler();
-        ((ThreadPoolTaskScheduler)this.taskScheduler).initialize();
+
+
+    public TaskSchedulerService(TaskScheduler taskScheduler, ScrapingService scrapingService) {
+        this.taskScheduler = taskScheduler;
+        this.scrapingService = scrapingService;
+
     }
 
     /**
-     * Programa una tarea para ejecutarse periódicamente con un intervalo específico.
-     * Si existe una tarea previamente programada, esta se cancela antes de programar la nueva.
+     * Programa una tarea periódica para realizar scraping.
      *
-     * @param task          La tarea a ejecutar periódicamente.
-     * @param intervalMillis El intervalo de tiempo entre ejecuciones, en milisegundos.
+     * @param parameters     Los parámetros de scraping.
+     * @param intervalMillis Intervalo en milisegundos entre cada ejecución de la tarea.
      */
-    public void scheduledTask(Runnable task, long intervalMillis) {
+    public void scheduleScrapingTask(ScrapingParameters parameters, long intervalMillis) {
         cancelScheduledTask();
-        Instant starTime = Instant.now().plusMillis(intervalMillis);
-        scheduledTask = taskScheduler.scheduleWithFixedDelay(task, starTime, Duration.ofMillis(intervalMillis));
+
+        Runnable task = () -> {
+            try {
+                scrapingService.performScraping(parameters);
+            } catch (Exception e) {
+                log.error("Error durante la ejecución del scraping: {}", e.getMessage());
+            }
+        };
+
+        Instant initialDelay = Instant.now().plusMillis(intervalMillis);
+        scheduledTask = taskScheduler.scheduleWithFixedDelay(task, initialDelay, Duration.ofMillis(intervalMillis));
         log.info("Nueva tarea programada con un intervalo de {} ms", intervalMillis);
     }
 
@@ -47,7 +57,7 @@ public class TaskSchedulerService {
      * Se asegura de que cualquier tarea pendiente que no haya sido ejecutada o que aún esté en ejecución,
      * sea cancelada antes de iniciar una nueva tarea.
      */
-    private void cancelScheduledTask() {
+    public void cancelScheduledTask() {
 
         if(scheduledTask != null && !scheduledTask.isCancelled()) {
             scheduledTask.cancel(true);

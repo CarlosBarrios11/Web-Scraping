@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 
 /**
- * Servicio encargado de gestionar solicitudes de scraping, ya sea de manera inmediata o programada.
- * Utiliza servicios de scraping, programación de tareas, y análisis de intervalos para ejecutar
- * y programar tareas de scraping basadas en los parámetros proporcionados.
+ * Servicio para manejar las solicitudes de raspado y programar la ejecución de tareas de scraping.
+ * Este servicio coordina la ejecución del scraping, y en caso de que se solicite una ejecución repetida,
+ * programa la tarea para ejecutarse en intervalos regulares.
  */
 @Service
 public class IntervalSchedulerService {
@@ -23,11 +23,11 @@ public class IntervalSchedulerService {
     private final IntervalParser intervalParser;
 
     /**
-     * Constructor que inicializa las dependencias necesarias para gestionar el scraping y su programación.
+     * Constructor que inyecta las dependencias necesarias para el funcionamiento del servicio.
      *
-     * @param scrapingService Servicio encargado de realizar el proceso de scraping.
-     * @param taskScheduler Servicio encargado de programar y gestionar tareas periódicas.
-     * @param intervalParser Servicio encargado de analizar y convertir los intervalos de tiempo a milisegundos.
+     * @param scrapingService Servicio que realiza el scraping de datos.
+     * @param taskScheduler Servicio que gestiona la programación de tareas.
+     * @param intervalParser Analiza y convierte intervalos de tiempo a milisegundos.
      */
     @Autowired
     public IntervalSchedulerService(ScrapingService scrapingService,
@@ -41,32 +41,32 @@ public class IntervalSchedulerService {
 
 
     /**
-     * Procesa una solicitud de scraping según los parámetros especificados.
-     * <p>
-     * - Si el intervalo es "once", el scraping se ejecuta inmediatamente.
-     * - Si el intervalo es válido, se programa una tarea periódica de scraping.
-     * </p>
+     * Maneja la solicitud del scraping, ejecutándolo una vez o programando la tarea para repetirse
+     * en intervalos regulares según el parámetro de intervalo proporcionado.
      *
-     * @param parameters Los parámetros que definen la URL de scraping y el intervalo de ejecución.
-     *                   Debe incluir un valor válido en el campo "interval".
-     * @return Un objeto {@link ScrapingResult} con los productos obtenidos. En caso de error,
-     *         se devuelve un resultado vacío.
-     * @throws InvalidParametersException Si el intervalo especificado no es válido o no puede analizarse.
+     * @param parameters Parámetros que contienen la URL y el intervalo para el scraping.
+     * @return El resultado del scraping, que puede ser una lista vacía si no se encontraron productos.
+     * @throws InvalidParametersException Si el intervalo proporcionado es inválido.
      */
+
     public ScrapingResult handleScrapingRequest(ScrapingParameters parameters) {
+
         try {
-            ScrapingResult result = scrapingService.getFinalList(parameters)
+
+            ScrapingResult result = scrapingService.performScraping(parameters)
                     .orElse(new ScrapingResult(Collections.emptyList()));
 
+
             if ("once".equalsIgnoreCase(parameters.getInterval().trim())) {
-               return result;
+                return result;
             } else {
                 long interval = intervalParser.parseToMillis(parameters.getInterval());
-                taskScheduler.scheduledTask(
-                        () -> scrapingService.getFinalList(parameters), interval
-                );
+                taskScheduler.scheduleScrapingTask(parameters, interval);
+
             }
             return result;
+
+
         } catch (IllegalArgumentException e) {
             logger.error("Error al procesar el intervalo: {}", e.getMessage());
             throw new InvalidParametersException("Intervalo inválido recibido em handleScrapingRequest: " + parameters.getInterval());

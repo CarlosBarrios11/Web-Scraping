@@ -1,34 +1,28 @@
 package com.javabuilders.demowebscraping.service;
 import com.javabuilders.demowebscraping.model.ScrapingParameters;
+import org.openqa.selenium.PageLoadStrategy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.stereotype.Service;
 
 /**
- * Clase encargada de gestionar la inicialización y configuración del WebDriver para el proceso de scraping.
- * Esta clase utiliza Selenium WebDriver para interactuar con el navegador y extraer datos de una página web.
- * Implementa la interfaz {@link IBrowserDriver}.
+ * Servicio para gestionar la configuración y el ciclo de vida de instancias de WebDriver.
  */
 @Service
 public class WebDriverManager implements IBrowserDriver{
 
     /**
-     * Inicializa y configura un WebDriver de Selenium para la extracción de datos utilizando el navegador Google Chrome.
-     * La configuración incluye opciones como el modo headless, deshabilitación de notificaciones, y la configuración
-     * del tamaño de la ventana.
+     * Inicializa y configura una nueva instancia de WebDriver con las opciones especificadas.
      *
-     * @return Un objeto {@link WebDriver} configurado para navegar en la web.
+     * @return Una instancia configurada de WebDriver.
      */
-    @Override
     public WebDriver initializeWebDriver() {
-        // Configura las opciones de Chrome (configurarlo según el entorno)
+        // Configura las opciones de Chrome
         ChromeOptions options = new ChromeOptions();
-        // 1. Modo headless: el navegador no se abre visualmente (ideal para pruebas automáticas)
-        options.addArguments("--headless");
 
-        // 2. Deshabilitar las notificaciones emergentes (puede ser útil para scraping)
-        options.addArguments("--disable-notifications");
+         //2. Deshabilitar las notificaciones emergentes (puede ser útil para scraping)
+        //options.addArguments("--disable-notifications");
 
         // 3. Ignorar los errores de certificado (útil si trabajas con sitios no seguros)
         options.addArguments("--ignore-certificate-errors");
@@ -48,8 +42,15 @@ public class WebDriverManager implements IBrowserDriver{
         // 8. Mejora la seguridad en entornos de servidor
         options.addArguments("--no-sandbox");
 
+         //9. Iniciar en modo incógnito
+        //options.addArguments("--incognito");
 
-        options.addArguments("--incognito");
+        // Solo espera a que se cargue el contenido esencial
+        options.setPageLoadStrategy(PageLoadStrategy.EAGER);
+
+        //1. Modo headless: el navegador no se abre visualmente (ideal para pruebas automáticas)
+        //options.addArguments("--headless");
+
         return new ChromeDriver(options);
     }
 
@@ -61,8 +62,21 @@ public class WebDriverManager implements IBrowserDriver{
      */
     @Override
     public WebDriver connectDriverToUrl(ScrapingParameters parameters) {
-        WebDriver driver = initializeWebDriver();
-        driver.get(parameters.getUrl());
+        WebDriver driver = initializeWebDriver(); // Inicializar el driver
+        driver.get(parameters.getUrl()); // Navegar a la URL especificada
         return driver;
+    }
+
+
+
+    /**
+     * Cierra el WebDriver para liberar recursos.
+     *
+     * @param driver El WebDriver que se está utilizando.
+     */
+    public static void closeDriver(WebDriver driver) {
+        if (driver != null) {
+            driver.quit(); // Cerrar el navegador y liberar los recursos
+        }
     }
 }

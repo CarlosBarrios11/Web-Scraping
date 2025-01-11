@@ -4,17 +4,22 @@ import org.openqa.selenium.WebDriver;
 import java.util.List;
 
 /**
- * Interfaz para la extracción de productos desde una página web utilizando Selenium.
- * Cualquier clase que implemente esta interfaz debe proporcionar una implementación
- * para el método `extractProductList` que extrae una lista de productos de una página web.
+ * Interfaz que define el contrato para un extractor de productos en una página web.
+ * Las clases que implementen esta interfaz deben proporcionar la lógica para extraer los productos
+ * de una página web utilizando un WebDriver.
  */
+
 public interface IProductExtractor {
 
     /**
-     * Método para extraer una lista de productos de una página web utilizando WebDriver de Selenium.
+     * Extrae una lista de productos de la página web actual utilizando el WebDriver proporcionado.
+     * La implementación de este método debe identificar los elementos HTML correspondientes a los productos
+     * y extraer su información relevante (como nombre, precio, enlace, etc.).
      *
-     * @param webDriver El controlador web de Selenium utilizado para navegar en la página.
-     * @return Una lista de objetos `Product` con los datos extraídos de la página.
+     * @param webDriver El WebDriver utilizado para interactuar con la página web y extraer los datos.
+     * @return Una lista de objetos {@link Product} que representan los productos extraídos de la página.
      */
-    List<Product> extractProductList(WebDriver webDriver);
+    List<Product> scrapeCurrentPage(WebDriver webDriver);
+
+
 }

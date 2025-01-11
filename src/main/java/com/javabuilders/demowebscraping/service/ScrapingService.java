@@ -1,13 +1,10 @@
 package com.javabuilders.demowebscraping.service;
-
 import com.javabuilders.demowebscraping.exception.InvalidParametersException;
-import com.javabuilders.demowebscraping.exception.ScrapingExecutionException;
 import com.javabuilders.demowebscraping.model.Product;
 import com.javabuilders.demowebscraping.model.ScrapingParameters;
 import com.javabuilders.demowebscraping.model.ScrapingResult;
 import lombok.RequiredArgsConstructor;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,14 +13,9 @@ import java.util.Optional;
 
 
 /**
- * Servicio encargado de realizar operaciones de web scraping.
- * <p>
- * Utiliza Selenium WebDriver para conectarse a páginas web y extraer información específica
- * (en este caso, productos) basada en los parámetros proporcionados.
- * </p>
- * <p>
- * También gestiona los resultados obtenidos mediante el uso de {@link ScrapingResultManager}.
- * </p>
+ * Servicio principal para realizar el scraping en sitios web.
+ * Se encarga de gestionar la configuración del WebDriver, la extracción de productos y
+ * el manejo de resultados paginados.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,51 +23,81 @@ public class ScrapingService implements IScrapingService {
 
     private final IBrowserDriver browserDriver;
     private final ScrapingResultManager resultManager;
+    private final PaginationHandler paginationHandler;
     private static final Logger logger = LoggerFactory.getLogger(ScrapingService.class);
 
+
     /**
-     * Realiza el scraping de productos desde una página web especificada en los parámetros.
-     * <p>
-     * Este método conecta a la URL proporcionada usando Selenium WebDriver, extrae los productos
-     * y gestiona los resultados para que puedan ser utilizados por otras partes del sistema.
-     * </p>
+     * Realiza el proceso de scraping basado en los parámetros proporcionados.
      *
-     * @param scrapingParameters Los parámetros necesarios para realizar el scraping, incluyendo la URL.
-     * @return Un {@link Optional} que contiene un objeto {@link ScrapingResult} con los productos extraídos,
-     * o un valor vacío si ocurre un error en la ejecución.
-     * @throws InvalidParametersException Si los parámetros proporcionados no son válidos.
-     * @throws ScrapingExecutionException Si ocurre un error durante el proceso de scraping.
+     * @param parameters Parámetros de scraping, como la URL y número de páginas.
+     * @return Un {@link Optional} que contiene el resultado del scraping, o vacío si ocurrió un error.
      */
-    public Optional<ScrapingResult> getFinalList(ScrapingParameters scrapingParameters) {
+    @Override
+    public Optional<ScrapingResult> performScraping(ScrapingParameters parameters) {
 
+        validateUrl(parameters);
 
-        validateUrl(scrapingParameters);
-        WebDriver driver = browserDriver.connectDriverToUrl(scrapingParameters);
-
+        WebDriver driver = null;
+        List<Product> productList = List.of();
         try {
-            IProductExtractor productExtractor = ExtractorFactory.getProductExtractor(scrapingParameters);
-            List<Product> products = productExtractor.extractProductList(driver);
-            logger.info("Productos obtenidos: {}", products.size());  // Log de depuración para ver la cantidad de productos
-            ScrapingResult latestProducts = new ScrapingResult(products);
-            resultManager.updateLatestResult(latestProducts);
-            return Optional.of(latestProducts);
-        } catch (WebDriverException e) {
-            logger.error("Error en la conexión con el navegador: {}", e.getMessage());
-            throw new ScrapingExecutionException("Error en la ejecución del scraping.", e);
+            driver = browserDriver.connectDriverToUrl(parameters);
+            IProductExtractor productExtractor = getProductExtractor(parameters);
+            productList = scrapeProducts(driver, parameters, productExtractor);
+
+        } catch (Exception e) {
+            logger.error("No se pudo realizar el scraping en el método performScraping: {}", e.getMessage(), e);
         } finally {
-            driver.quit();
+            logger.info("Productos obtenidos: {}", productList.size());
+            WebDriverManager.closeDriver(driver);
         }
+        return createScrapingResult(productList);
     }
 
     /**
-     * Válida los parámetros de scraping para asegurarse de que contienen una URL válida.
-     * <p>
-     * Este método lanza una excepción si la URL está vacía o es nula, asegurando que el proceso
-     * de scraping no se inicie con datos inválidos.
-     * </p>
+     * Obtiene el extractor de productos adecuado basado en los parámetros del scraping.
      *
-     * @param parameters Los parámetros que contienen la URL para el scraping.
-     * @throws InvalidParametersException Si la URL está vacía o es nula.
+     * @param parameters Parámetros que definen el tipo de scraping.
+     * @return Una implementación de {@link IProductExtractor}.
+     */
+    private IProductExtractor getProductExtractor(ScrapingParameters parameters) {
+
+        return ExtractorFactory.getProductExtractor(parameters);
+    }
+
+    /**
+     * Realiza el scraping de los productos utilizando la paginación.
+     *
+     * @param driver           El WebDriver que interactúa con la página web.
+     * @param parameters       Los parámetros de scraping, como el número de páginas.
+     * @param productExtractor El extractor de productos.
+     * @return Lista de productos extraídos de todas las páginas procesadas.
+     */
+    private List<Product> scrapeProducts(WebDriver driver, ScrapingParameters parameters, IProductExtractor productExtractor) {
+
+        return paginationHandler.scrapePaginatedResults(driver,
+                () -> productExtractor.scrapeCurrentPage(driver),
+                parameters,
+                productExtractor);
+    }
+
+    /**
+     * Crea el resultado del scraping y lo almacena utilizando el administrador de resultados.
+     *
+     * @param products Lista de productos extraídos.
+     * @return Un {@link Optional} con el resultado del scraping.
+     */
+    private Optional <ScrapingResult> createScrapingResult(List<Product> products) {
+        ScrapingResult scrapingResult = new ScrapingResult(products);
+        resultManager.updateLatestResult(scrapingResult);
+        return Optional.of(scrapingResult);
+    }
+
+    /**
+     * Válida que la URL proporcionada en los parámetros sea válida.
+     *
+     * @param parameters Parámetros de scraping.
+     * @throws InvalidParametersException si la URL está vacía o es nula.
      */
     public void validateUrl(ScrapingParameters parameters) {
         if(parameters.getUrl().isEmpty()) {

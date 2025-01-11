@@ -1,5 +1,4 @@
 package com.javabuilders.demowebscraping.service;
-
 import com.javabuilders.demowebscraping.model.Product;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -8,7 +7,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,48 +16,66 @@ import java.util.NoSuchElementException;
 
 /**
  * Implementación de {@link IProductExtractor} para extraer productos desde eBay utilizando Selenium.
- * Utiliza una búsqueda de elementos en la página con un selector CSS específico para extraer los datos de cada producto.
- * La clase maneja excepciones para continuar con la extracción incluso si algunos productos no pueden ser procesados.
+ * <p>
+ * Esta clase utiliza Selenium WebDriver para navegar y extraer información de productos en páginas web de eBay.
+ * Identifica productos utilizando selectores CSS específicos y extrae atributos como nombre, precio y enlace, asegurándose de que los datos sean válidos antes
+ *  * de agregarlos a la lista de productos.
+ * <p>
  */
-
 public class EbayProductExtractor implements IProductExtractor{
-    private static final Logger logger= LoggerFactory.getLogger(EbayProductExtractor.class);
 
+
+    private static final Logger log = LoggerFactory.getLogger(EbayProductExtractor.class);
 
     /**
-     * Extrae una lista de productos desde la página web de eBay.
-     * Este método utiliza Selenium WebDriver para localizar los elementos que representan los productos
-     * en la página y extrae su nombre, precio y enlace.
+     * Extrae los productos visibles en la página actual de eBay utilizando WebDriver.
+     * Este método espera que los elementos de productos estén presentes en el DOM antes de proceder a extraerlos.
      *
-     * @param webDriver El controlador web de Selenium, utilizado para interactuar con la página de eBay.
-     * @return Una lista de objetos {@link Product} que contienen el nombre, precio, enlace y timestamp del producto.
+     * @param webDriver El WebDriver que interactúa con la página de eBay.
+     * @return Una lista de objetos {@link Product} con los productos extraídos de la página.
      */
     @Override
-    public List<Product> extractProductList(WebDriver webDriver) {
+    public List<Product> scrapeCurrentPage(WebDriver webDriver) {
         List<Product> productList = new ArrayList<>();
 
-        // Espera explícita para asegurarse de que los productos estén cargados
+        // Espera explícita para asegurarse de que los productos estén cargados en el DOM
         WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(20));
-        wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.cssSelector(".s-item__info")));
+        wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.cssSelector(".s-item__info.clearfix")));
 
-        // Selector para cada producto en la página
-        List<WebElement> elements = webDriver.findElements(By.cssSelector(".s-item__info"));
+        // Selector CSS para localizar los elementos que representan productos
+        List<WebElement> elements = webDriver.findElements(By.cssSelector(".s-item__info.clearfix"));
 
         for (WebElement element : elements) {
             try {
-                // Extrae los detalles del producto (nombre, precio, enlace).
+                // Extrae el nombre, precio, enlace.
                 String name = element.findElement(By.cssSelector(".s-item__title")).getText().trim();
                 String priceText = element.findElement(By.cssSelector(".s-item__price")).getText().trim();
                 String link = element.findElement(By.cssSelector(".s-item__link")).getAttribute("href");
-                //double price = parsingDouble(priceText);
                 Date timeStamp = new Date();
-                productList.add(new Product(name, priceText, link, timeStamp));
 
-            } catch (NoSuchElementException e) {
+                if(isProductInformationValid(name, priceText, link)) {
+                    productList.add(new Product(name, priceText, link, timeStamp));
+                }
+
+        } catch (NoSuchElementException e) {
                 // Omitir productos que no se puedan extraer correctamente
-                logger.error("Error al procesar un producto: {} ", e.getMessage());
+                log.error("Error al procesar un producto: {} ", e.getMessage());
             }
         }
         return productList;
+    }
+
+    /**
+     * Verifica si la información del producto es válida. La validez se determina
+     * asegurándose de que el nombre, el precio y el enlace no estén vacíos.
+     *
+     * @param name El nombre del producto. No puede ser vacío.
+     * @param priceText El texto que representa el precio del producto. No puede ser vacío.
+     * @param link El enlace del producto. No puede ser vacío.
+     * @return {@code true} si el nombre, el precio y el enlace no están vacíos,
+     *         {@code false} en caso contrario.
+     */
+    public boolean isProductInformationValid(String name, String priceText, String link) {
+        return !name.isEmpty() && !priceText.isEmpty() && !link.isEmpty();
     }
 }

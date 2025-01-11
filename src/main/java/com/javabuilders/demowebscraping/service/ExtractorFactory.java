@@ -3,22 +3,22 @@ package com.javabuilders.demowebscraping.service;
 import com.javabuilders.demowebscraping.model.ScrapingParameters;
 
 /**
- * Fábrica encargada de proporcionar la implementación de {@link IProductExtractor} adecuada según la URL proporcionada.
- * Actualmente, soporta solo la extracción de productos de eBay, pero puede ampliarse para soportar otros sitios en el futuro.
+ *Fábrica para obtener el extractor de productos adecuado según la URL del sitio web de destino.
  */
 public class ExtractorFactory {
 
+
     private static final String ebayWebSite = "www.ebay.com";
 
+
     /**
-     * Obtiene una instancia de {@link IProductExtractor} según los parámetros de scraping proporcionados.
-     * <p>
-     * El método verifica la URL proporcionada en los parámetros de scraping y decide qué extractor usar.
-     * Actualmente, solo se soporta el extractor de eBay, pero la clase puede ser extendida para incluir más sitios web.
+     * Devuelve una instancia de un extractor de productos basado en la URL proporcionada.
+     * Actualmente, solo soporta eBay como sitio web de destino. Si la URL contiene el dominio de eBay,
+     * se devuelve un {@link EbayProductExtractor}. Si no se reconoce la URL, se lanza una excepción.
      *
-     * @param scrapingParameters Los parámetros de scraping, que contienen la URL de la página web a extraer productos.
-     * @return Una instancia de {@link IProductExtractor} correspondiente a la URL proporcionada.
-     * @throws IllegalArgumentException Si no hay un extractor disponible para la URL proporcionada.
+     * @param scrapingParameters Parámetros de raspado que contienen la URL del sitio web a scrapear.
+     * @return Una instancia de {@link IProductExtractor} para extraer productos del sitio web especificado.
+     * @throws IllegalArgumentException Si el sitio web no es compatible (actualmente solo soporta eBay).
      */
 
     public static IProductExtractor getProductExtractor(ScrapingParameters scrapingParameters) {

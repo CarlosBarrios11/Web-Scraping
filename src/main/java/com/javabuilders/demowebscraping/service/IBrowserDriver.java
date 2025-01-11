@@ -3,26 +3,29 @@ import com.javabuilders.demowebscraping.model.ScrapingParameters;
 import org.openqa.selenium.WebDriver;
 
 /**
- * Interfaz para la configuración y manejo del WebDriver de Selenium.
- * Define los métodos necesarios para inicializar un WebDriver y conectar el driver a una URL.
- * Las implementaciones de esta interfaz se encargarán de configurar y gestionar la interacción con el navegador para el scraping.
+ * Interfaz para interactuar con un navegador web en un entorno de scraping de datos.
+ * Esta interfaz define métodos para inicializar el WebDriver y conectar el navegador a una URL específica.
  */
 public interface IBrowserDriver {
 
     /**
-     * Inicializa el WebDriver necesario para interactuar con el navegador.
-     * Este método configura el WebDriver según las necesidades del entorno de ejecución (por ejemplo, Firefox, Chrome).
+     * Inicializa el WebDriver necesario para controlar el navegador.
+     * Este método debe ser implementado para proporcionar la configuración específica del WebDriver
+     * (por ejemplo, el tipo de navegador a utilizar: Chrome, Firefox, etc.).
      *
      * @return Una instancia de {@link WebDriver} lista para usar.
      */
     WebDriver initializeWebDriver();
 
     /**
-     * Conecta el WebDriver a la URL proporcionada en los parámetros de scraping.
-     * Utiliza los detalles de la URL especificados en {@link ScrapingParameters} para navegar a la página correcta.
+     * Conecta el WebDriver a una URL específica utilizando los parámetros del scraper proporcionados.
+     * Este método permite navegar hacia la URL que se desea raspar, usando la configuración de parámetros adecuada.
      *
-     * @param parameters Los parámetros de scraping que incluyen la URL del sitio web a scrapear.
-     * @return Una instancia de {@link WebDriver} que ha navegado a la URL proporcionada.
+     * @param parameters Parámetros del scraper que contienen la URL y otras configuraciones necesarias.
+     * @return Una instancia de {@link WebDriver} conectada a la URL especificada.
      */
     WebDriver connectDriverToUrl(ScrapingParameters parameters);
+
 }
+
+
